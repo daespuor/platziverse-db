@@ -1,0 +1,14 @@
+{
+  "name": "platziverse-db",
+  "version": "1.0.0",
+  "description": "A simple IoT plataform",
+  "main": "index.js",
+  "scripts": {
+    "lint": "standard --fix"
+  },
+  "author": "Daniel Puerta",
+  "license": "MIT",
+  "devDependencies": {
+    "standard": "^11.0.1"
+  }
+}

@@ -6,8 +6,8 @@
 
 const setupDatabase = require('platziverse-db')
 
-setupDatabase(config).then(db =>{
-    const {Agent, Metric} = db
+setupDatabase.init(config).then(db =>{
+    const {Agent, Metric, MetricType} = db
 
 }).catch(err => console.log(err))
 

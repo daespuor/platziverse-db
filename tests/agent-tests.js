@@ -3,11 +3,15 @@
 const sinon = require('sinon')
 const test = require('ava')
 const proxyquire = require('proxyquire')
-const agentFixiture = require('./fixitures/agent')
+const fixtures = require('platziverse-fixis')
+const agentFixiture = fixtures.getAgentFixtures()
 
 let AgentStub = null
 let MetricStub = {
   belongsTo: sinon.spy()
+}
+let TypeStub = {
+  hasOne: sinon.spy()
 }
 let sandbox = null
 let db = null
@@ -68,9 +72,10 @@ test.beforeEach(async t => {
 
   const setupDatabase = proxyquire('../', {
     './models/agent': () => AgentStub,
-    './models/metric': () => MetricStub
+    './models/metric': () => MetricStub,
+    './models/metric_type': () => TypeStub
   })
-  db = await setupDatabase(config)
+  db = await setupDatabase.init(config)
 })
 
 test.afterEach(() => {
@@ -85,6 +90,8 @@ test.serial('Setup', t => {
   t.true(AgentStub.hasMany.called, 'HasMany should be called')
   t.true(AgentStub.hasMany.calledWith(MetricStub), 'HasMany should be called with MetricStub')
   t.true(MetricStub.belongsTo.called, 'BelongsTo should be called')
+  t.true(TypeStub.hasOne.calledOnce, 'HasOne should be called once')
+  t.true(TypeStub.hasOne.calledWith(MetricStub), 'HasOne should be called with Metric')
 })
 
 test.serial('Agent#findById', async t => {

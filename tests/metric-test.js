@@ -3,8 +3,9 @@
 const test = require('ava')
 const sinon = require('sinon')
 const proxyquire = require('proxyquire')
-const metricFixiture = require('./fixitures/metric')
-const agentFixiture = require('./fixitures/agent')
+const fixtures = require('platziverse-fixis')
+const metricFixiture = fixtures.getMetricFixtures()
+const agentFixiture = fixtures.getAgentFixtures()
 
 let sandbox = null
 let db = null
@@ -13,6 +14,9 @@ let config = {
 }
 let AgentStub = null
 let MetricStub = null
+let TypeStub = {
+  hasOne: sinon.spy()
+}
 let newMetric = Object.assign({}, metricFixiture.newMetric)
 let singleAgent = Object.assign({}, agentFixiture.single)
 let uuid = singleAgent.uuid
@@ -23,7 +27,7 @@ let condFind = {
 }
 let condAgentUuid = null
 let condTypeAgentUuid = null
-let type = metricFixiture.single.type
+let typeId = metricFixiture.single.typeId
 
 test.beforeEach(async t => {
   sandbox = sinon.createSandbox()
@@ -37,8 +41,8 @@ test.beforeEach(async t => {
     findAll: sandbox.stub()
   }
   condAgentUuid = {
-    attributes: ['type'],
-    group: ['type'],
+    attributes: ['typeId'],
+    group: ['typeId'],
     include: [{
       model: AgentStub,
       attributes: [],
@@ -49,7 +53,7 @@ test.beforeEach(async t => {
     raw: true
   }
   condTypeAgentUuid = {
-    attributes: ['id', 'type', 'value', 'createdAt', 'updatedAt'],
+    attributes: ['id', 'typeId', 'value', 'createdAt', 'updatedAt'],
     include: [{
       model: AgentStub,
       attributes: [],
@@ -58,7 +62,7 @@ test.beforeEach(async t => {
       }
     }],
     where: {
-      type
+      typeId
     },
     raw: true
   }
@@ -70,13 +74,14 @@ test.beforeEach(async t => {
     toJSON: () => metricFixiture.newMetric
   })
   MetricStub.findAll.withArgs(condAgentUuid).returns(metricFixiture.findByAgentId(agentFixiture.findByUuid(uuid).id))
-  MetricStub.findAll.withArgs(condTypeAgentUuid).returns(metricFixiture.findByTypeAgentId(type, agentFixiture.findByUuid(uuid).id))
+  MetricStub.findAll.withArgs(condTypeAgentUuid).returns(metricFixiture.findByTypeAgentId(typeId, agentFixiture.findByUuid(uuid).id))
 
   let setupDatabase = proxyquire('../', {
     './models/agent': () => AgentStub,
-    './models/metric': () => MetricStub
+    './models/metric': () => MetricStub,
+    './models/metric_type': () => TypeStub
   })
-  db = await setupDatabase(config)
+  db = await setupDatabase.init(config)
 })
 
 test.afterEach(t => {
@@ -94,6 +99,8 @@ test.serial('Metric#setup', t => {
   t.true(AgentStub.hasMany.called, 'HasMany should be called')
   t.true(AgentStub.hasMany.calledOnce, 'HasMany should be calledOnce')
   t.true(AgentStub.hasMany.calledWith(MetricStub), 'HasMany should be called with Metrics')
+  t.true(TypeStub.hasOne.calledOnce, 'HasOne should be called once')
+  t.true(TypeStub.hasOne.calledWith(MetricStub), 'HasOne should be called with Metric')
 })
 
 test.serial('Metric#create', async t => {
@@ -116,8 +123,8 @@ test.serial('Metric#findByAgentUuid', async t => {
 })
 
 test.serial('Metric#findByTypeAgentUuid', async t => {
-  let metricsDB = await db.Metric.findByTypeAgentUuid(type, uuid)
-  let metricFix = metricFixiture.findByTypeAgentId(type, agentFixiture.findByUuid(uuid).id)
+  let metricsDB = await db.Metric.findByTypeAgentUuid(typeId, uuid)
+  let metricFix = metricFixiture.findByTypeAgentId(typeId, agentFixiture.findByUuid(uuid).id)
 
   t.true(MetricStub.findAll.calledOnce, 'FindAll should be called once')
   t.true(MetricStub.findAll.calledWith(condTypeAgentUuid), 'FindAll should be called with condTypeAgentUuid')
